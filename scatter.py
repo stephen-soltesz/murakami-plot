@@ -34,23 +34,25 @@ def home():
 
 @app.route('/scatter', methods=['GET'])
 def scatter():
-    #print 'request', flask.request.form
     with lock:
-        hourly, _, upload, download = load_image()
-        output = plot_scatter(hourly, upload, download)
+        try:
+            offset = int(flask.request.args.get('offset', 0))
+        except ValueError:
+            offset = 0
+        hourly, _, upload, download = load_image(offset)
+        output = plot_scatter(hourly, upload, download, offset)
         return flask.send_file(output, mimetype='image/svg+xml')
 
 
 @app.route('/time', methods=['GET'])
 def time():
-    #print 'request', flask.request.form
     with lock:
         _, dates, upload, download = load_image()
         output = plot_time(dates, upload, download)
         return flask.send_file(output, mimetype='image/svg+xml')
 
 
-def load_image():
+def load_image(offset=0):
     hourly = []
     dates = []
     y_upload = []
@@ -70,14 +72,14 @@ def load_image():
         dl = float(row['Download'])
         ul = float(row['Upload'])
 
-        hourly.append(((float(ts) / 3600.0) - 5) % 24)
+        hourly.append(((float(ts) / 3600.0) + offset) % 24)
         dates.append(dt)
         y_download.append(dl / 1000.0)
         y_upload.append(ul / 1000.0)
     return hourly, dates, y_upload, y_download
 
 
-def plot_scatter(hourly, upload, download):
+def plot_scatter(hourly, upload, download, offset=0):
     plt.figure(figsize=(8, 6))
     plt.scatter(hourly, download, s=9, label="download")
     plt.plot((0, 24), (np.average(download), np.average(download)))
@@ -85,7 +87,7 @@ def plot_scatter(hourly, upload, download):
     plt.plot((0, 24), (np.average(upload), np.average(upload)))
     plt.title('Scatter Plot - Test-rate vs Hour-of-day')
     plt.ylabel('Mbps')
-    plt.xlabel('Hour (EST)')
+    plt.xlabel('Hour (offset %d)' % offset)
 
     plt.xlim(0, 24)
     plt.ylim(0, 1.2 * max(download))
