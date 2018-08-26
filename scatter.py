@@ -21,7 +21,6 @@ lock = threading.Lock()
 
 @app.route('/', methods=['GET'])
 def home():
-    #print 'request', flask.request.form
     response = """
     <html><body>
         <img src="/scatter?offset=-5"/>
