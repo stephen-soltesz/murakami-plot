@@ -24,7 +24,7 @@ def home():
     #print 'request', flask.request.form
     response = """
     <html><body>
-        <img src="/scatter"/>
+        <img src="/scatter?offset=-5"/>
         <img src="/time"/>
     </body></html>
     """
