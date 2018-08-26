@@ -1,5 +1,7 @@
 # murakami-plot
 
+murakami-plot is designed to visualize the output from the M-Lab
+[murakami](https://github.com/m-lab/murakami) output.
 
 ```
 docker run -d --restart always --name murakami-plot \
