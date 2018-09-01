@@ -6,7 +6,10 @@ import matplotlib as mpl
 import numpy as np
 from datetime import datetime
 import sys
+import json
 import threading
+import glob
+import random
 
 import io
 import flask
@@ -23,7 +26,8 @@ lock = threading.Lock()
 def home():
     response = """
     <html><body>
-        <img src="/scatter?offset=-5"/>
+        <img src="/scatter_seconds"/>
+        <img src="/scatter_hours?offset=-5"/>
         <img src="/time"/>
     </body></html>
     """
@@ -31,15 +35,30 @@ def home():
         response, content_type='text/html; charset=utf-8')
 
 
-@app.route('/scatter', methods=['GET'])
-def scatter():
+@app.route('/scatter_hours', methods=['GET'])
+def scatter_hours():
     with lock:
         try:
             offset = int(flask.request.args.get('offset', 0))
         except ValueError:
             offset = 0
         hourly, _, upload, download = load_image(offset)
-        output = plot_scatter(hourly, upload, download, offset)
+        output = plot_scatter(
+            ((hourly, download, 'download'),
+             (hourly, upload, 'upload')),
+            title='Scatter Plot - Test-rate vs Hour-of-day', xlabel='Hour (offset {0})', offset=offset)
+        return flask.send_file(output, mimetype='image/svg+xml')
+
+
+@app.route('/scatter_seconds', methods=['GET'])
+def scatter_seconds():
+    with lock:
+        timeu, upload = load_data('test_keys', 'test_c2s', 'sender_data')
+        timed, download = load_data('test_keys', 'test_s2c', 'receiver_data')
+        output = plot_scatter(
+            ((timed, download, 'download'),
+             (timeu, upload, 'upload')),
+            title='Scatter Plot - Test-rate vs Seconds', xlabel='Seconds', xlim=(0, 11))
         return flask.send_file(output, mimetype='image/svg+xml')
 
 
@@ -49,6 +68,27 @@ def time():
         _, dates, upload, download = load_image()
         output = plot_time(dates, upload, download)
         return flask.send_file(output, mimetype='image/svg+xml')
+
+
+def load_data(keys, test, samples):
+    time = []
+    rate = []
+    for data_filename in glob.glob('data/*.njson'):
+        data = json.loads(open(data_filename).read())
+        if keys in data and test  in data[keys]:
+            if len(data[keys][test]) > 0:
+                if data[keys][test][0]:
+                    d = data[keys][test][0][samples]
+                    for sample in d:
+                        time.append(sample[0] + random.random() * 0.5)
+                        rate.append(sample[1])
+                else:
+                    print data_filename, 'missing', samples
+            else:
+                print data_filename, 'missing array for', test
+        else:
+            print data_filename, 'missing', keys
+    return time, rate
 
 
 def load_image(offset=0):
@@ -78,18 +118,21 @@ def load_image(offset=0):
     return hourly, dates, y_upload, y_download
 
 
-def plot_scatter(hourly, upload, download, offset=0):
+def plot_scatter(time_rate_labels, title='', offset=0, xlim=(0, 24), xlabel=''):
     plt.figure(figsize=(8, 6))
-    plt.scatter(hourly, download, s=9, label="download")
-    plt.plot((0, 24), (np.average(download), np.average(download)))
-    plt.scatter(hourly, upload, s=9, label="upload")
-    plt.plot((0, 24), (np.average(upload), np.average(upload)))
-    plt.title('Scatter Plot - Test-rate vs Hour-of-day')
+    m = None
+    for i in range(len(time_rate_labels)):
+        t, r, l = time_rate_labels[i]
+        m = max(max(r), m)
+        plt.scatter(t, r, s=9, label=l)
+        plt.plot(xlim, (np.average(r), np.average(r)))
+    plt.title(title)
     plt.ylabel('Mbps')
-    plt.xlabel('Hour (offset %d)' % offset)
+    if xlabel:
+        plt.xlabel(xlabel.format(offset))
 
-    plt.xlim(0, 24)
-    plt.ylim(0, 1.2 * max(download))
+    plt.xlim(xlim)
+    plt.ylim(0, 1.2 * m)
     plt.legend()
     print 'scatter-plot.svg'
 
