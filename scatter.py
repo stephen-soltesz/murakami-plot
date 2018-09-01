@@ -46,7 +46,7 @@ def scatter_hours():
         output = plot_scatter(
             ((hourly, download, 'download'),
              (hourly, upload, 'upload')),
-            title='Scatter Plot - Test-rate vs Hour-of-day', xlabel='Hour (offset {0})', offset=offset)
+            title='Test-rate vs Hour-of-day', xlabel='Hour (offset {0})', offset=offset)
         return flask.send_file(output, mimetype='image/svg+xml')
 
 
@@ -58,7 +58,7 @@ def scatter_seconds():
         output = plot_scatter(
             ((timed, download, 'download'),
              (timeu, upload, 'upload')),
-            title='Scatter Plot - Test-rate vs Seconds', xlabel='Seconds', xlim=(0, 11))
+            title='Test-rate vs Seconds', xlabel='Seconds', xlim=(0, 11))
         return flask.send_file(output, mimetype='image/svg+xml')
 
 
