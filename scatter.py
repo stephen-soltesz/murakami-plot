@@ -74,9 +74,13 @@ def load_data(keys, test, samples):
     time = []
     rate = []
     for data_filename in glob.glob('data/*.njson'):
-        data = json.loads(open(data_filename).read())
+        try:
+          data = json.loads(open(data_filename).read())
+        except:
+          print 'Failed to open %s' % data_filename
+          continue
         if keys in data and test  in data[keys]:
-            if len(data[keys][test]) > 0:
+            if data[keys][test]:
                 if data[keys][test][0]:
                     d = data[keys][test][0][samples]
                     for sample in d:
@@ -108,8 +112,12 @@ def load_image(offset=0):
 
         ts = int(h) * 3600 + int(m) * 60 + int(s)
         dt = datetime.strptime(row['Datetime'], '%Y-%m-%d %H:%M:%S')
-        dl = float(row['Download'])
-        ul = float(row['Upload'])
+        try:
+          dl = float(row['Download'])
+          ul = float(row['Upload'])
+        except:
+          print 'Failed to convert %s & %s to float' % (row['Download'], row['Upload'])
+          continue
 
         hourly.append(((float(ts) / 3600.0) + offset) % 24)
         dates.append(dt)
@@ -123,6 +131,8 @@ def plot_scatter(time_rate_labels, title='', offset=0, xlim=(0, 24), xlabel=''):
     m = None
     for i in range(len(time_rate_labels)):
         t, r, l = time_rate_labels[i]
+        if not r:
+            continue
         m = max(max(r), m)
         plt.scatter(t, r, s=9, label=l)
         plt.plot(xlim, (np.average(r), np.average(r)))
@@ -132,7 +142,8 @@ def plot_scatter(time_rate_labels, title='', offset=0, xlim=(0, 24), xlabel=''):
         plt.xlabel(xlabel.format(offset))
 
     plt.xlim(xlim)
-    plt.ylim(0, 1.2 * m)
+    if m:
+        plt.ylim(0, 1.2 * m)
     plt.legend()
     print 'scatter-plot.svg'
 
