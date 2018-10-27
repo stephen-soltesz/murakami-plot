@@ -40,7 +40,7 @@ def scatter_hours():
     with lock:
         try:
             offset = int(flask.request.args.get('offset', 0))
-        except ValueError:
+        except:
             offset = 0
         hourly, _, upload, download = load_image(offset)
         output = plot_scatter(
@@ -107,6 +107,10 @@ def load_image(offset=0):
           rows.append(row)
       
       for row in sorted(rows, key=lambda r: r['Datetime']):
+        if ('Datetime' not in row or
+            'Download' not in row or
+            'Upload' not in row):
+            continue
         _, hms = row['Datetime'].split()
         h, m, s = hms.split(':')
 
