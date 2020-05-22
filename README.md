@@ -14,3 +14,9 @@ docker run -d --restart always --name murakami-plot \
     -v $PWD/data:/data -v $PWD/share:/share -p 8000:8000 \
     soltesz/murakami-plot:v0.3 /scatter.py /share/history.csv
 ```
+
+To start a modified murakami server.
+```
+docker run -d --name murakami -v $PWD/share:/share \
+    -v $PWD/data:/data murakami-local /share/run.py
+```
